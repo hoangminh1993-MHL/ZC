@@ -21,7 +21,7 @@ function renderOrders(container, orderType = 'all') {
         <div class="mb-6 flex justify-between items-center">
             <h2 class="text-xl font-bold text-gray-800">${title}</h2>
             ${['sales_lead', 'sales_staff', 'admin'].includes(state.user.role) ? 
-                `<button onclick="alert('Form tạo đơn')" class="bg-brand-red text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-red-800 transition-colors">
+                `<button onclick="showCreateOrderModal()" class="bg-brand-red text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-red-800 transition-colors">
                     <i class="fas fa-plus mr-1"></i> Tạo đơn
                 </button>` : ''}
         </div>
@@ -112,4 +112,123 @@ window.viewOrderDetails = function(orderId) {
     `;
     
     showModal(`Chi tiết đơn ${ord.id}`, detailHtml);
+};
+
+window.showCreateOrderModal = function() {
+    const products = state.data.products || [];
+    const cakeProducts = products.filter(p => p.category === 'Bánh kem');
+    
+    let prodOptions = cakeProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    
+    let html = `
+        <form onsubmit="submitCreateOrder(event)" class="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Khách hàng</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" id="ordCustomerName" placeholder="Tên khách" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-brand-red focus:border-brand-red">
+                    <input type="tel" id="ordCustomerPhone" placeholder="Số điện thoại" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-brand-red focus:border-brand-red">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Mẫu bánh sinh nhật</label>
+                <select id="ordProductId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-brand-red focus:border-brand-red">
+                    <option value="">-- Chọn mẫu bánh --</option>
+                    ${prodOptions}
+                </select>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Kích thước</label>
+                    <select id="ordSize" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-brand-red focus:border-brand-red">
+                        <option value="16cm">16 cm</option>
+                        <option value="18cm">18 cm</option>
+                        <option value="20cm">20 cm</option>
+                        <option value="22cm">22 cm</option>
+                        <option value="24cm">24 cm</option>
+                        <option value="Khác">Khác</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Thời gian giao</label>
+                    <input type="datetime-local" id="ordDeliveryTime" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-brand-red focus:border-brand-red">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Ghi chữ lên bánh</label>
+                <input type="text" id="ordMessage" placeholder="VD: Chúc mừng sinh nhật..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-brand-red focus:border-brand-red">
+            </div>
+            
+            <div class="grid grid-cols-3 gap-2">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Giá bánh (đ)</label>
+                    <input type="number" id="ordCakePrice" value="0" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-brand-red focus:border-brand-red" oninput="calcRemaining()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Phí ship (đ)</label>
+                    <input type="number" id="ordShippingFee" value="0" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-brand-red focus:border-brand-red" oninput="calcRemaining()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1 text-brand-red">Cần thu (đ)</label>
+                    <input type="number" id="ordRemaining" value="0" required class="w-full px-3 py-2 border border-brand-red bg-red-50 rounded-lg text-sm font-bold focus:ring-brand-red focus:border-brand-red" placeholder="Nếu đã thanh toán nhập 0">
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 italic mt-1">* Nếu khách đã thanh toán toàn bộ, vui lòng nhập số tiền "Cần thu" = 0</p>
+            
+            <button type="submit" class="w-full bg-brand-red text-white py-3 rounded-lg font-medium shadow-sm hover:bg-red-800 transition-colors mt-6">
+                Tạo đơn hàng
+            </button>
+        </form>
+    `;
+    
+    showModal('Tạo Đơn Bánh Sinh Nhật', html);
+    
+    // Set default datetime to tomorrow
+    const tmr = new Date();
+    tmr.setDate(tmr.getDate() + 1);
+    tmr.setHours(12, 0, 0, 0);
+    // Format to yyyy-mm-ddThh:mm
+    const tzoffset = tmr.getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(tmr - tzoffset)).toISOString().slice(0, 16);
+    document.getElementById('ordDeliveryTime').value = localISOTime;
+};
+
+window.calcRemaining = function() {
+    const price = parseInt(document.getElementById('ordCakePrice').value) || 0;
+    const ship = parseInt(document.getElementById('ordShippingFee').value) || 0;
+    document.getElementById('ordRemaining').value = price + ship;
+};
+
+window.submitCreateOrder = async function(e) {
+    e.preventDefault();
+    
+    const price = parseInt(document.getElementById('ordCakePrice').value) || 0;
+    const ship = parseInt(document.getElementById('ordShippingFee').value) || 0;
+    const remaining = parseInt(document.getElementById('ordRemaining').value) || 0;
+    const deposit = (price + ship) - remaining;
+    
+    const ord = {
+        id: 'ord-' + Date.now(),
+        customerName: document.getElementById('ordCustomerName').value,
+        phone: document.getElementById('ordCustomerPhone').value,
+        productId: document.getElementById('ordProductId').value,
+        size: document.getElementById('ordSize').value,
+        flavor: 'Mặc định',
+        messageOnCake: document.getElementById('ordMessage').value,
+        depositAmount: deposit >= 0 ? deposit : 0,
+        remainingAmount: remaining,
+        deliveryTime: document.getElementById('ordDeliveryTime').value,
+        status: 'pending',
+        quantity: 1
+    };
+    
+    const res = await fetchApi('/preorders', { method: 'POST', body: JSON.stringify(ord) });
+    if (res && res.success) {
+        showToast('Đã tạo đơn sinh nhật thành công');
+        closeModal();
+        await fetchInitialData();
+        if (state.currentView === 'orders') renderView('orders');
+    }
 };
