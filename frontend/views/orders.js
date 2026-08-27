@@ -6,12 +6,12 @@ function renderOrders(container, orderType = 'all') {
     if (orderType === 'single') {
         orders = orders.filter(ord => {
             const p = products.find(prod => prod.id === ord.productId);
-            return p && p.category !== 'Bánh kem';
+            return p && p.category !== 'Bánh kem' && p.category !== 'Bánh sinh nhật';
         });
     } else if (orderType === 'birthday') {
         orders = orders.filter(ord => {
             const p = products.find(prod => prod.id === ord.productId);
-            return p && p.category === 'Bánh kem';
+            return p && (p.category === 'Bánh kem' || p.category === 'Bánh sinh nhật');
         });
     }
     
