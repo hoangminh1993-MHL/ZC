@@ -118,10 +118,22 @@ window.showCreateOrderModal = function() {
     const products = state.data.products || [];
     const cakeProducts = products.filter(p => p.category === 'Bánh kem');
     
-    let prodOptions = cakeProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    let prodGridHtml = `<div class="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1 scrollbar-hide">`;
+    cakeProducts.forEach(p => {
+        prodGridHtml += `
+            <div id="cake-card-${p.id}" class="cake-selector-card border-2 border-transparent border-gray-200 rounded-lg p-2 cursor-pointer flex flex-col items-center hover:border-brand-red/50 hover:bg-red-50/50 transition-all" onclick="selectCake('${p.id}', ${p.price})">
+                <div class="w-16 h-16 rounded-md overflow-hidden bg-gray-100 mb-2 flex items-center justify-center shrink-0 shadow-sm">
+                    ${p.photoUrl ? `<img src="${p.photoUrl}" class="w-full h-full object-cover">` : `<i class="fas fa-birthday-cake text-xl text-gray-300"></i>`}
+                </div>
+                <div class="text-xs font-bold text-center leading-tight mb-1 text-gray-800 line-clamp-2 h-8 w-full">${p.name}</div>
+                <div class="text-brand-red text-xs font-bold mt-auto">${formatCurrency(p.price)}</div>
+            </div>
+        `;
+    });
+    prodGridHtml += `</div><input type="hidden" id="ordProductId" required>`;
     
     let html = `
-        <form onsubmit="submitCreateOrder(event)" class="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+        <form onsubmit="submitCreateOrder(event)" class="space-y-4 max-h-[75vh] overflow-y-auto pr-2">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Khách hàng</label>
                 <div class="grid grid-cols-2 gap-2">
@@ -131,11 +143,8 @@ window.showCreateOrderModal = function() {
             </div>
             
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Mẫu bánh sinh nhật</label>
-                <select id="ordProductId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-brand-red focus:border-brand-red">
-                    <option value="">-- Chọn mẫu bánh --</option>
-                    ${prodOptions}
-                </select>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Chọn Bánh Sinh Nhật</label>
+                ${prodGridHtml}
             </div>
             
             <div class="grid grid-cols-2 gap-4">
@@ -195,6 +204,22 @@ window.showCreateOrderModal = function() {
     document.getElementById('ordDeliveryTime').value = localISOTime;
 };
 
+window.selectCake = function(id, price) {
+    document.querySelectorAll('.cake-selector-card').forEach(el => {
+        el.classList.remove('border-brand-red', 'bg-red-50');
+        el.classList.add('border-gray-200');
+    });
+    const selected = document.getElementById(`cake-card-${id}`);
+    selected.classList.remove('border-gray-200');
+    selected.classList.add('border-brand-red', 'bg-red-50');
+    
+    document.getElementById('ordProductId').value = id;
+    
+    const priceInput = document.getElementById('ordCakePrice');
+    priceInput.value = price;
+    calcRemaining();
+};
+
 window.calcRemaining = function() {
     const price = parseInt(document.getElementById('ordCakePrice').value) || 0;
     const ship = parseInt(document.getElementById('ordShippingFee').value) || 0;
@@ -208,6 +233,12 @@ window.submitCreateOrder = async function(e) {
     const ship = parseInt(document.getElementById('ordShippingFee').value) || 0;
     const remaining = parseInt(document.getElementById('ordRemaining').value) || 0;
     const deposit = (price + ship) - remaining;
+    
+    const productId = document.getElementById('ordProductId').value;
+    if (!productId) {
+        showToast('Vui lòng chọn bánh sinh nhật', 'error');
+        return;
+    }
     
     const ord = {
         id: 'ord-' + Date.now(),

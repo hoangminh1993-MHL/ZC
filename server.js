@@ -148,9 +148,78 @@ app.post('/api/violations', (req, res) => {
         db.violations = db.violations || [];
         db.violations.push(req.body);
         fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
-        res.json({ success: true });
-    } catch(err) {
-        res.status(500).json({ error: err.message });
+        res.json({ success: true, id: req.body.id });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to create violation' });
+    }
+});
+
+app.post('/api/preorders', (req, res) => {
+    try {
+        const db = readJsonDb();
+        db.preorders = db.preorders || [];
+        
+        const newOrder = req.body;
+        if (!newOrder.id) {
+            newOrder.id = 'ord-' + Date.now();
+        }
+        
+        db.preorders.push(newOrder);
+        fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+        res.json({ success: true, id: newOrder.id });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to create order' });
+    }
+});
+
+// Products API
+app.post('/api/products', (req, res) => {
+    try {
+        const db = readJsonDb();
+        db.products = db.products || [];
+        
+        const newProduct = req.body;
+        if (!newProduct.id) {
+            newProduct.id = 'prod-' + Date.now();
+        }
+        
+        db.products.push(newProduct);
+        fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+        res.json({ success: true, id: newProduct.id });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to create product' });
+    }
+});
+
+app.put('/api/products/:id', (req, res) => {
+    try {
+        const db = readJsonDb();
+        const idx = db.products.findIndex(p => p.id === req.params.id);
+        if (idx >= 0) {
+            db.products[idx] = req.body;
+            fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ error: 'Product not found' });
+        }
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to update product' });
+    }
+});
+
+app.delete('/api/products/:id', (req, res) => {
+    try {
+        const db = readJsonDb();
+        const idx = db.products.findIndex(p => p.id === req.params.id);
+        if (idx >= 0) {
+            db.products.splice(idx, 1);
+            fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ error: 'Product not found' });
+        }
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to delete product' });
     }
 });
 

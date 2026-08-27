@@ -215,6 +215,7 @@ function renderView(viewId) {
         case 'staff': renderStaff(content); break;
         case 'reports': renderReports(content); break;
         case 'settings': renderSettings(content); break;
+        case 'products': renderProducts(content); break;
         default: content.innerHTML = '<div class="p-4 text-center">Not implemented</div>';
     }
 }

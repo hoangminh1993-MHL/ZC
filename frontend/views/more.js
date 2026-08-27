@@ -69,7 +69,7 @@ window.handleMoreMenu = function(menuId) {
                 </div>
             </div>
         `);
-    } else if (['staff', 'reports', 'settings'].includes(menuId)) {
+    } else if (['staff', 'reports', 'settings', 'products'].includes(menuId)) {
         renderView(menuId);
     } else {
         alert('Tính năng đang được phát triển trong phiên bản tiếp theo.');
