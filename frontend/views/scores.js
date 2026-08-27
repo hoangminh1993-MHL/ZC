@@ -56,7 +56,7 @@ function renderScores(container) {
             if (empPoint < 80) pColor = "text-brand-red";
             
             html += `
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover-card flex justify-between items-center">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover-card flex justify-between items-center cursor-pointer" onclick="showEmployeeHistory('${emp.id}')">
                     <div class="flex items-center gap-3">
                         <img src="${emp.avatar || 'https://ui-avatars.com/api/?name=' + emp.name[0]}" class="w-10 h-10 rounded-full border border-gray-200">
                         <div>
@@ -122,6 +122,14 @@ function renderScores(container) {
     
     html += `<h3 class="text-lg font-bold text-gray-800 mb-4">Lịch sử thay đổi điểm</h3><div class="space-y-3">`;
     
+    html += generateHistoryHTML(historyList, users);
+    
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+function generateHistoryHTML(historyList, users) {
+    let html = '';
     if (historyList.length === 0) {
         html += `<div class="bg-white p-6 rounded-xl text-center text-gray-500 border border-dashed border-gray-300">Chưa có lịch sử điểm nào.</div>`;
     } else {
@@ -173,10 +181,59 @@ function renderScores(container) {
             `;
         });
     }
-    
-    html += `</div>`;
-    container.innerHTML = html;
+    return html;
 }
+
+window.showEmployeeHistory = function(empId) {
+    const emp = state.data.users.find(u => u.id === empId);
+    if (!emp) return;
+    
+    const violations = state.data.violationRecords || [];
+    const tasks = state.data.productionTasks || [];
+    
+    let viewViolations = violations.filter(v => v.employeeId === empId);
+    let evalTasks = tasks.filter(t => t.grade && t.assigneeId === empId);
+    
+    const mappedViolations = viewViolations.map(v => ({
+        id: v.id,
+        type: 'violation',
+        date: v.datetime,
+        employeeId: v.employeeId,
+        title: v.description,
+        description: `Mức độ: ${v.severity}`,
+        points: v.status === 'approved' ? -v.deductedPoints : 0,
+        status: v.status,
+        raw: v
+    }));
+    
+    const mappedTasks = evalTasks.map(t => {
+        let pts = 0;
+        let gradeText = '';
+        if (t.grade === 'good') { pts = 3; gradeText = 'Hoàn thành xuất sắc'; }
+        else if (t.grade === 'done') { pts = 1; gradeText = 'Hoàn thành đúng hạn'; }
+        else if (t.grade === 'late') { pts = -1; gradeText = 'Hoàn thành trễ hạn'; }
+        
+        return {
+            id: t.id,
+            type: 'task',
+            date: t.startTime,
+            employeeId: t.assigneeId,
+            title: `Nhiệm vụ: ${t.specialInstruction || t.purpose}`,
+            description: `Đánh giá: ${gradeText}`,
+            points: pts,
+            status: 'approved',
+            raw: t
+        };
+    });
+    
+    const historyList = [...mappedViolations, ...mappedTasks].sort((a,b) => new Date(b.date) - new Date(a.date));
+    
+    let html = `<div class="space-y-3 max-h-[60vh] overflow-y-auto pr-2">`;
+    html += generateHistoryHTML(historyList, state.data.users);
+    html += `</div>`;
+    
+    showModal(`Lịch sử điểm: ${emp.name}`, html);
+};
 
 window.viewViolation = function(vId) {
     const v = state.data.violationRecords.find(r => r.id === vId);
