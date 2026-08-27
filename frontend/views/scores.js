@@ -74,40 +74,100 @@ function renderScores(container) {
         html += `</div>`;
     }
 
-    // Violations List
+    // Point Change History
     let viewViolations = violations;
     if (!['admin', 'head_chef'].includes(me.role)) {
         viewViolations = violations.filter(v => v.employeeId === me.id);
     }
     
-    html += `<h3 class="text-lg font-bold text-gray-800 mb-4">Lịch sử ghi nhận lỗi</h3><div class="space-y-3">`;
+    const tasks = state.data.productionTasks || [];
+    let evalTasks = tasks.filter(t => t.grade);
+    if (!['admin', 'head_chef'].includes(me.role)) {
+        evalTasks = evalTasks.filter(t => t.assigneeId === me.id);
+    }
     
-    if (viewViolations.length === 0) {
-        html += `<div class="bg-white p-6 rounded-xl text-center text-gray-500 border border-dashed border-gray-300">Tuyệt vời! Không có lỗi vi phạm nào.</div>`;
+    const mappedViolations = viewViolations.map(v => ({
+        id: v.id,
+        type: 'violation',
+        date: v.datetime,
+        employeeId: v.employeeId,
+        title: v.description,
+        description: `Mức độ: ${v.severity}`,
+        points: v.status === 'approved' ? -v.deductedPoints : 0,
+        status: v.status,
+        raw: v
+    }));
+    
+    const mappedTasks = evalTasks.map(t => {
+        let pts = 0;
+        let gradeText = '';
+        if (t.grade === 'good') { pts = 3; gradeText = 'Hoàn thành xuất sắc'; }
+        else if (t.grade === 'done') { pts = 1; gradeText = 'Hoàn thành đúng hạn'; }
+        else if (t.grade === 'late') { pts = -1; gradeText = 'Hoàn thành trễ hạn'; }
+        
+        return {
+            id: t.id,
+            type: 'task',
+            date: t.startTime, // using startTime or deadline as proxy for date
+            employeeId: t.assigneeId,
+            title: `Nhiệm vụ: ${t.specialInstruction || t.purpose}`,
+            description: `Đánh giá: ${gradeText}`,
+            points: pts,
+            status: 'approved',
+            raw: t
+        };
+    });
+    
+    const historyList = [...mappedViolations, ...mappedTasks].sort((a,b) => new Date(b.date) - new Date(a.date));
+    
+    html += `<h3 class="text-lg font-bold text-gray-800 mb-4">Lịch sử thay đổi điểm</h3><div class="space-y-3">`;
+    
+    if (historyList.length === 0) {
+        html += `<div class="bg-white p-6 rounded-xl text-center text-gray-500 border border-dashed border-gray-300">Chưa có lịch sử điểm nào.</div>`;
     } else {
-        viewViolations.sort((a,b) => new Date(b.datetime) - new Date(a.datetime)).forEach(v => {
-            const emp = users.find(u => u.id === v.employeeId);
+        historyList.forEach(item => {
+            const emp = users.find(u => u.id === item.employeeId);
             
             let statusBadge = '';
-            if (v.status === 'draft') statusBadge = '<span class="text-gray-500 bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold">NHÁP</span>';
-            if (v.status === 'waiting_explanation') statusBadge = '<span class="text-brand-orange bg-orange-100 px-2 py-0.5 rounded text-[10px] font-bold">CHỜ GIẢI TRÌNH</span>';
-            if (v.status === 'waiting_approval') statusBadge = '<span class="text-blue-600 bg-blue-100 px-2 py-0.5 rounded text-[10px] font-bold">CHỜ DUYỆT</span>';
-            if (v.status === 'approved') statusBadge = '<span class="text-brand-red bg-red-100 px-2 py-0.5 rounded text-[10px] font-bold">ĐÃ DUYỆT</span>';
-            if (v.status === 'rejected') statusBadge = '<span class="text-gray-400 bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold">HỦY</span>';
+            if (item.type === 'violation') {
+                if (item.status === 'draft') statusBadge = '<span class="text-gray-500 bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold">NHÁP</span>';
+                if (item.status === 'waiting_explanation') statusBadge = '<span class="text-brand-orange bg-orange-100 px-2 py-0.5 rounded text-[10px] font-bold">CHỜ GIẢI TRÌNH</span>';
+                if (item.status === 'waiting_approval') statusBadge = '<span class="text-blue-600 bg-blue-100 px-2 py-0.5 rounded text-[10px] font-bold">CHỜ DUYỆT</span>';
+                if (item.status === 'approved') statusBadge = '<span class="text-brand-red bg-red-100 px-2 py-0.5 rounded text-[10px] font-bold">ĐÃ DUYỆT LỖI</span>';
+                if (item.status === 'rejected') statusBadge = '<span class="text-gray-400 bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold">HỦY</span>';
+            } else {
+                statusBadge = '<span class="text-brand-green bg-green-100 px-2 py-0.5 rounded text-[10px] font-bold">HOÀN THÀNH NV</span>';
+            }
+            
+            let pointDisplay = '<div class="text-sm text-gray-400">Chưa tính điểm</div>';
+            if (item.status === 'approved') {
+                if (item.points > 0) {
+                    pointDisplay = `<div class="text-xl font-black text-brand-green">+ ${item.points} đ</div>`;
+                } else if (item.points < 0) {
+                    pointDisplay = `<div class="text-xl font-black text-brand-red">${item.points} đ</div>`;
+                } else {
+                    pointDisplay = `<div class="text-xl font-black text-gray-500">0 đ</div>`;
+                }
+            }
+            
+            let onClickAction = item.type === 'violation' ? `onclick="viewViolation('${item.id}')"` : '';
+            let cursorClass = item.type === 'violation' ? 'cursor-pointer hover-card' : '';
+            let icon = item.type === 'violation' ? '<i class="fas fa-exclamation-triangle text-brand-red/50"></i>' : '<i class="fas fa-check-circle text-brand-green/50"></i>';
             
             html += `
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover-card flex flex-col md:flex-row justify-between md:items-center gap-4 cursor-pointer" onclick="viewViolation('${v.id}')">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between md:items-center gap-4 ${cursorClass}" ${onClickAction}>
                     <div class="flex-1">
                         <div class="flex items-center gap-2 mb-1">
-                            <span class="text-xs font-semibold text-gray-500">${v.id}</span>
+                            ${icon}
+                            <span class="text-xs font-semibold text-gray-500">${item.id}</span>
                             ${statusBadge}
                         </div>
-                        <h4 class="font-bold text-gray-900">${v.description}</h4>
-                        <div class="text-sm text-gray-600 mt-1">Nhân viên: <strong>${emp ? emp.name : 'Unknown'}</strong> | Mức độ: ${v.severity}</div>
-                        <div class="text-xs text-gray-400 mt-1"><i class="far fa-clock"></i> ${formatDate(v.datetime, true)}</div>
+                        <h4 class="font-bold text-gray-900">${item.title}</h4>
+                        <div class="text-sm text-gray-600 mt-1">Nhân viên: <strong>${emp ? emp.name : 'Unknown'}</strong> | ${item.description}</div>
+                        <div class="text-xs text-gray-400 mt-1"><i class="far fa-clock"></i> ${formatDate(item.date, true)}</div>
                     </div>
                     <div class="text-right">
-                        ${v.status === 'approved' ? `<div class="text-xl font-black text-brand-red">- ${v.deductedPoints} đ</div>` : '<div class="text-sm text-gray-400">Chưa trừ điểm</div>'}
+                        ${pointDisplay}
                     </div>
                 </div>
             `;
