@@ -116,7 +116,7 @@ window.viewOrderDetails = function(orderId) {
 
 window.showCreateOrderModal = function() {
     const products = state.data.products || [];
-    const cakeProducts = products.filter(p => p.category === 'Bánh kem');
+    const cakeProducts = products.filter(p => p.category === 'Bánh sinh nhật');
     
     let prodGridHtml = `<div class="flex gap-3 overflow-x-auto pb-3 pt-1 scrollbar-hide snap-x">`;
     cakeProducts.forEach(p => {

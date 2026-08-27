@@ -78,6 +78,7 @@ window.showEditProductModal = function(productId = null) {
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Phân loại</label>
                     <select id="prodCategory" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-brand-red focus:border-brand-red">
+                        <option value="Bánh sinh nhật" ${p?.category === 'Bánh sinh nhật' ? 'selected' : ''}>Bánh sinh nhật</option>
                         <option value="Bánh kem" ${p?.category === 'Bánh kem' ? 'selected' : ''}>Bánh kem</option>
                         <option value="Bánh lạnh" ${p?.category === 'Bánh lạnh' ? 'selected' : ''}>Bánh lạnh</option>
                         <option value="Khác" ${p?.category === 'Khác' ? 'selected' : ''}>Khác</option>
