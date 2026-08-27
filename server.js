@@ -17,6 +17,11 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(__dirname)); // Serve frontend files
 
+// Redirect root to login
+app.get('/', (req, res) => {
+    res.redirect('/frontend/login.html');
+});
+
 // GET /api/data
 app.get('/api/data', (req, res) => {
     try {
