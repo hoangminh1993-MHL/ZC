@@ -118,11 +118,11 @@ window.showCreateOrderModal = function() {
     const products = state.data.products || [];
     const cakeProducts = products.filter(p => p.category === 'Bánh kem');
     
-    let prodGridHtml = `<div class="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1 scrollbar-hide">`;
+    let prodGridHtml = `<div class="flex gap-3 overflow-x-auto pb-3 pt-1 scrollbar-hide snap-x">`;
     cakeProducts.forEach(p => {
         prodGridHtml += `
-            <div id="cake-card-${p.id}" class="cake-selector-card border-2 border-transparent border-gray-200 rounded-lg p-2 cursor-pointer flex flex-col items-center hover:border-brand-red/50 hover:bg-red-50/50 transition-all" onclick="selectCake('${p.id}', ${p.price})">
-                <div class="w-16 h-16 rounded-md overflow-hidden bg-gray-100 mb-2 flex items-center justify-center shrink-0 shadow-sm">
+            <div id="cake-card-${p.id}" class="cake-selector-card flex-none w-32 border-2 border-transparent border-gray-200 rounded-xl p-2 cursor-pointer flex flex-col items-center hover:border-brand-red/50 hover:bg-red-50/50 transition-all snap-start shadow-sm" onclick="selectCake('${p.id}', ${p.price})">
+                <div class="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 mb-2 flex items-center justify-center shrink-0">
                     ${p.photoUrl ? `<img src="${p.photoUrl}" class="w-full h-full object-cover">` : `<i class="fas fa-birthday-cake text-xl text-gray-300"></i>`}
                 </div>
                 <div class="text-xs font-bold text-center leading-tight mb-1 text-gray-800 line-clamp-2 h-8 w-full">${p.name}</div>
@@ -143,7 +143,10 @@ window.showCreateOrderModal = function() {
             </div>
             
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Chọn Bánh Sinh Nhật</label>
+                <div class="flex justify-between items-center mb-2">
+                    <label class="block text-sm font-medium text-gray-700">Chọn Bánh Sinh Nhật</label>
+                    ${['admin', 'head_chef'].includes(state.user.role) ? `<button type="button" onclick="closeModal(); renderView('products')" class="text-xs text-brand-red font-medium hover:underline flex items-center gap-1"><i class="fas fa-edit"></i> Sửa Menu</button>` : ''}
+                </div>
                 ${prodGridHtml}
             </div>
             
