@@ -46,6 +46,35 @@ app.post('/api/data', (req, res) => {
     }
 });
 
+// POST /api/login
+app.post('/api/login', (req, res) => {
+    try {
+        if (!fs.existsSync(DB_FILE)) {
+            return res.status(500).json({ success: false, message: 'Database missing' });
+        }
+        const db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+        const { username, password } = req.body;
+        const user = db.users.find(u => u.username === username && u.password === password);
+        
+        if (user) {
+            res.json({
+                success: true,
+                token: `dummy-token-${user.id}`,
+                user: {
+                    id: user.id,
+                    username: user.username,
+                    name: user.name,
+                    role: user.role
+                }
+            });
+        } else {
+            res.status(401).json({ success: false, message: 'Sai tên đăng nhập hoặc mật khẩu' });
+        }
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // POST /api/upload-base64
 app.post('/api/upload-base64', (req, res) => {
     try {
