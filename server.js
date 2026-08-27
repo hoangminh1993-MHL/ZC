@@ -8,6 +8,15 @@ const PORT = process.env.PORT || 8080;
 const DB_FILE = path.join(__dirname, 'zc_db.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
+// Helper to safely read JSON and strip BOM if present
+function readJsonDb() {
+    let raw = fs.readFileSync(DB_FILE, 'utf8');
+    if (raw.charCodeAt(0) === 0xFEFF) {
+        raw = raw.slice(1);
+    }
+    return JSON.parse(raw);
+}
+
 // Ensure uploads dir exists
 if (!fs.existsSync(UPLOADS_DIR)) {
     fs.mkdirSync(UPLOADS_DIR, { recursive: true });
@@ -28,8 +37,8 @@ app.get('/api/data', (req, res) => {
         if (!fs.existsSync(DB_FILE)) {
             return res.json({});
         }
-        const data = fs.readFileSync(DB_FILE, 'utf8');
-        res.json(JSON.parse(data));
+        const data = readJsonDb();
+        res.json(data);
     } catch (err) {
         res.status(500).json({ error: 'Failed to read database' });
     }
@@ -52,7 +61,7 @@ app.post('/api/login', (req, res) => {
         if (!fs.existsSync(DB_FILE)) {
             return res.status(500).json({ success: false, message: 'Database missing' });
         }
-        const db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+        const db = readJsonDb();
         const { username, password } = req.body;
         const user = db.users.find(u => u.username === username && u.password === password);
         
@@ -71,7 +80,7 @@ app.post('/api/login', (req, res) => {
             res.status(401).json({ success: false, message: 'Sai tên đăng nhập hoặc mật khẩu' });
         }
     } catch (err) {
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: 'Server error', details: err.message, stack: err.stack });
     }
 });
 
@@ -106,7 +115,7 @@ app.post('/api/upload-base64', (req, res) => {
 // PUT endpoints to update specific collections in db.json for granular updates
 app.put('/api/tasks/:id', (req, res) => {
     try {
-        const db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+        const db = readJsonDb();
         const taskIdx = db.productionTasks.findIndex(t => t.id === req.params.id);
         if (taskIdx >= 0) {
             db.productionTasks[taskIdx] = req.body;
@@ -122,7 +131,7 @@ app.put('/api/tasks/:id', (req, res) => {
 
 app.post('/api/tasks', (req, res) => {
     try {
-        const db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+        const db = readJsonDb();
         const newTask = req.body;
         // Backend overrides ID to ensure uniqueness if needed, but frontend already sends ID
         db.productionTasks.push(newTask);
@@ -135,7 +144,7 @@ app.post('/api/tasks', (req, res) => {
 
 app.post('/api/violations', (req, res) => {
     try {
-        const db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+        const db = readJsonDb();
         db.violations = db.violations || [];
         db.violations.push(req.body);
         fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
