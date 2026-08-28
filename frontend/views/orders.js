@@ -263,6 +263,6 @@ window.submitCreateOrder = async function(e) {
         showToast('Đã tạo đơn sinh nhật thành công');
         closeModal();
         await fetchInitialData();
-        if (state.currentView === 'orders') renderView('orders');
+        if (state.currentView.startsWith('orders')) renderView(state.currentView);
     }
 };

@@ -127,7 +127,7 @@ window.handleProductPhotoUpload = function(e) {
         try {
             const res = await fetchApi('/upload-base64', {
                 method: 'POST',
-                body: JSON.stringify({ imageBase64: base64Data })
+                body: JSON.stringify({ image: base64Data })
             });
             
             if (res && res.success) {
