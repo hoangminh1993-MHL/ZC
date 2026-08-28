@@ -61,7 +61,7 @@ async function fetchApi(endpoint, options = {}) {
 }
 
 async function fetchInitialData() {
-    const db = await fetchApi('/data');
+    const db = await fetchApi('/data?_t=' + Date.now());
     if (db) {
         state.data = db;
     }
