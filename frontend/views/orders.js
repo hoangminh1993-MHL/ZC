@@ -1,4 +1,12 @@
+window.currentOrderType = null;
+window.currentOrderMonthFilter = 'all';
+
 function renderOrders(container, orderType = 'all') {
+    if (window.currentOrderType !== orderType) {
+        window.currentOrderType = orderType;
+        window.currentOrderMonthFilter = 'all';
+    }
+    
     let orders = state.data.preorders || [];
     const products = state.data.products || [];
     
@@ -15,29 +23,60 @@ function renderOrders(container, orderType = 'all') {
         });
     }
     
+    const getOrderDate = (ord) => {
+        if (ord.createdAt) return new Date(ord.createdAt);
+        const m = ord.id.match(/^ord-(\d+)$/);
+        if (m) return new Date(parseInt(m[1]));
+        return new Date();
+    };
+    
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    
+    const monthOrders = [...orders].filter(o => {
+        const d = getOrderDate(o);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    }).sort((a, b) => getOrderDate(a) - getOrderDate(b));
+    
+    orders.forEach(o => {
+        const d = getOrderDate(o);
+        if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+            const idx = monthOrders.findIndex(mo => mo.id === o.id) + 1;
+            o.displayTitle = `Ord${String(idx).padStart(3, '0')} - ${d.toLocaleDateString('vi-VN')}`;
+        } else {
+            o.displayTitle = `${o.id} - ${d.toLocaleDateString('vi-VN')}`;
+        }
+    });
+    
+    if (window.currentOrderMonthFilter === 'current') {
+        orders = orders.filter(o => {
+            const d = getOrderDate(o);
+            return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+        });
+    }
+    
     const title = orderType === 'single' ? 'Đơn đặt trước bánh lẻ' : (orderType === 'birthday' ? 'Đơn bánh sinh nhật' : 'Tất cả Đơn hàng');
     
     let html = `
         <div class="mb-6 flex justify-between items-center">
-            <h2 class="text-xl font-bold text-gray-800">${title}</h2>
-            ${['sales_lead', 'sales_staff', 'admin'].includes(state.user.role) ? 
-                `<button onclick="showCreateOrderModal()" class="bg-brand-red text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-red-800 transition-colors">
+            <h2 class="text-xl font-bold text-gray-800">\${title}</h2>
+            \${['sales_lead', 'sales_staff', 'admin'].includes(state.user.role) ? 
+                \`<button onclick="showCreateOrderModal()" class="bg-brand-red text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-red-800 transition-colors">
                     <i class="fas fa-plus mr-1"></i> Tạo đơn
-                </button>` : ''}
+                </button>\` : ''}
         </div>
         
-        <div class="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-            <button class="whitespace-nowrap px-4 py-2 rounded-full bg-brand-red text-white text-sm font-medium">Tất cả</button>
-            <button class="whitespace-nowrap px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50">Chờ bếp nhận</button>
-            <button class="whitespace-nowrap px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50">Đang sản xuất</button>
-            <button class="whitespace-nowrap px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50">Sẵn sàng giao</button>
+        <div class="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide items-center">
+            <span class="text-sm font-medium text-gray-500 whitespace-nowrap mr-2">Thời gian:</span>
+            <button onclick="window.currentOrderMonthFilter='all'; renderView(state.currentView)" class="whitespace-nowrap px-4 py-2 rounded-full \${window.currentOrderMonthFilter === 'all' ? 'bg-brand-red text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'} text-sm font-medium">Tất cả</button>
+            <button onclick="window.currentOrderMonthFilter='current'; renderView(state.currentView)" class="whitespace-nowrap px-4 py-2 rounded-full \${window.currentOrderMonthFilter === 'current' ? 'bg-brand-red text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'} text-sm font-medium">Tháng này</button>
         </div>
         
         <div class="space-y-4">
     `;
     
     if (orders.length === 0) {
-        html += `<div class="bg-white p-8 rounded-xl text-center text-gray-500 border border-dashed border-gray-300">Không có đơn hàng nào.</div>`;
+        html += \`<div class="bg-white p-8 rounded-xl text-center text-gray-500 border border-dashed border-gray-300">Không có đơn hàng nào.</div>\`;
     } else {
         orders.sort((a, b) => new Date(a.deliveryTime) - new Date(b.deliveryTime)).forEach(ord => {
             const prod = products.find(p => p.id === ord.productId);
@@ -49,34 +88,43 @@ function renderOrders(container, orderType = 'all') {
             if (ord.status === 'kitchen_received') statusBadge = '<span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-md">Bếp đã nhận</span>';
             if (ord.status === 'producing') statusBadge = '<span class="px-2 py-1 bg-brand-orange/20 text-brand-orange text-xs font-semibold rounded-md">Đang sản xuất</span>';
             
-            html += `
+            let prodImage = '';
+            if (prod && prod.photoUrl) {
+                prodImage = \`<div class="w-20 h-20 md:w-24 md:h-24 shrink-0 rounded-lg overflow-hidden border border-gray-200"><img src="\${prod.photoUrl}" class="w-full h-full object-cover" /></div>\`;
+            } else {
+                prodImage = \`<div class="w-20 h-20 md:w-24 md:h-24 shrink-0 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-300"><i class="fas fa-birthday-cake text-2xl"></i></div>\`;
+            }
+            
+            html += \`
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover-card flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+                    \${prodImage}
                     <div class="flex-1">
                         <div class="flex items-center gap-3 mb-1">
-                            <span class="text-sm font-bold text-brand-red">${ord.id}</span>
-                            ${statusBadge}
+                            <span class="text-sm font-bold text-brand-red">\${ord.displayTitle}</span>
+                            \${statusBadge}
                         </div>
-                        <h3 class="font-bold text-gray-900 text-lg mb-1">${ord.customerName} - ${ord.phone}</h3>
+                        <h3 class="font-bold text-gray-900 text-lg mb-1">\${ord.customerName} - \${ord.phone}</h3>
                         <p class="text-sm text-gray-600 mb-2">
-                            <strong>${prod ? prod.name : ord.productId}</strong> (Kích thước: ${ord.size} | SL: ${ord.quantity})
+                            <strong>\${prod ? prod.name : ord.productId}</strong> (Kích thước: \${ord.size} | SL: \${ord.quantity})
                         </p>
                         <div class="flex items-center gap-4 text-xs text-gray-500">
-                            <span class="flex items-center gap-1"><i class="far fa-clock"></i> Giao: <strong class="${new Date(ord.deliveryTime) < new Date() ? 'text-brand-red' : 'text-gray-800'}">${formatDate(ord.deliveryTime, true)}</strong></span>
-                            <span class="flex items-center gap-1"><i class="fas fa-money-bill-wave"></i> Thu thêm: <strong class="text-brand-red">${formatCurrency(ord.remainingAmount)}</strong></span>
+                            <span class="flex items-center gap-1"><i class="far fa-clock"></i> Giao: <strong class="\${new Date(ord.deliveryTime) < new Date() ? 'text-brand-red' : 'text-gray-800'}">\${formatDate(ord.deliveryTime, true)}</strong></span>
+                            <span class="flex items-center gap-1"><i class="fas fa-money-bill-wave"></i> Thu thêm: <strong class="text-brand-red">\${formatCurrency(ord.remainingAmount)}</strong></span>
                         </div>
                     </div>
                     
-                    <div class="flex flex-col gap-2 w-full md:w-auto mt-2 md:mt-0">
-                        <button onclick="viewOrderDetails('${ord.id}')" class="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">Chi tiết</button>
+                    <div class="flex flex-col gap-2 w-full md:w-auto mt-2 md:mt-0 shrink-0">
+                        <button onclick="viewOrderDetails('\${ord.id}')" class="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors w-full">Chi tiết</button>
                     </div>
                 </div>
-            `;
+            \`;
         });
     }
     
-    html += `</div>`;
+    html += \`</div>\`;
     container.innerHTML = html;
 }
+
 
 window.viewOrderDetails = function(orderId) {
     const ord = state.data.preorders.find(o => o.id === orderId);
@@ -111,7 +159,7 @@ window.viewOrderDetails = function(orderId) {
         </div>
     `;
     
-    showModal(`Chi tiết đơn ${ord.id}`, detailHtml);
+    showModal(ord.displayTitle || ('Chi tiết đơn ' + ord.id), detailHtml);
 };
 
 window.showCreateOrderModal = function() {
@@ -266,3 +314,4 @@ window.submitCreateOrder = async function(e) {
         if (state.currentView.startsWith('orders')) renderView(state.currentView);
     }
 };
+
