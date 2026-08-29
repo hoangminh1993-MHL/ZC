@@ -120,6 +120,26 @@ function closeModal() {
     document.getElementById('modal-container').classList.add('hidden');
 }
 
+// Close modal on ESC key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        var container = document.getElementById('modal-container');
+        if (container && !container.classList.contains('hidden')) {
+            closeModal();
+        }
+    }
+});
+
+// Close modal on click outside
+document.addEventListener('click', function(e) {
+    var container = document.getElementById('modal-container');
+    if (!container || container.classList.contains('hidden')) return;
+    var content = document.getElementById('modal-content');
+    if (e.target === container || (!content.contains(e.target) && container.contains(e.target))) {
+        closeModal();
+    }
+});
+
 function formatCurrency(amount) {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 }
