@@ -1,63 +1,13 @@
-﻿{
+{
     "auditLogs":  [
 
                   ],
     "products":  [
                      {
-                         "price":  350000,
-                         "category":  "Bánh lạnh",
-                         "name":  "Tiramisu",
-                         "id":  "prod-1",
-                         "processTemplateId":  "tpl-1"
-                     },
-                     {
-                         "price":  380000,
-                         "category":  "Bánh lạnh",
-                         "name":  "Cheesecake",
-                         "id":  "prod-2",
-                         "processTemplateId":  "tpl-1"
-                     },
-                     {
-                         "price":  450000,
-                         "category":  "Bánh kem",
-                         "name":  "Bánh kem sinh nhật (Dâu)",
-                         "id":  "prod-3",
-                         "processTemplateId":  "tpl-2"
-                     },
-                     {
-                         "price":  450000,
-                         "category":  "Bánh kem",
-                         "name":  "Bánh kem sinh nhật (Socola)",
-                         "id":  "prod-4",
-                         "processTemplateId":  "tpl-2"
-                     },
-                     {
-                         "price":  150000,
-                         "category":  "Bánh mặn",
-                         "name":  "Bông lan trứng muối",
-                         "id":  "prod-5",
-                         "processTemplateId":  "tpl-3"
-                     },
-                     {
-                         "price":  400000,
-                         "category":  "Bánh lạnh",
-                         "name":  "Red Velvet",
-                         "id":  "prod-6",
-                         "processTemplateId":  "tpl-1"
-                     },
-                     {
-                         "price":  120000,
-                         "category":  "Bánh mì",
-                         "name":  "Bánh Mì Hoa Cúc",
-                         "id":  "prod-7",
-                         "processTemplateId":  "tpl-3"
-                     },
-                     {
-                         "price":  180000,
-                         "category":  "Bánh khô",
-                         "name":  "Macaron (Hộp 6)",
-                         "id":  "prod-8",
-                         "processTemplateId":  "tpl-3"
+                         "price":  300000,
+                         "category":  "Bánh sinh nhật",
+                         "name":  "bánh SN test",
+                         "id":  "prod-1"
                      }
                  ],
     "productionTasks":  [
